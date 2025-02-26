@@ -31,6 +31,7 @@ class DatabaseServices {
     final databasePath = join(databaseDir,
         'todo_list.db'); // Create the full path for the database file
     final database = await openDatabase(
+      version: 1,
       databasePath,
       onCreate: (db, version) {
         // SQL query to create the task table
@@ -43,5 +44,16 @@ class DatabaseServices {
       },
     );
     return database; // Return the database instance
+  }
+
+  void add(String content) async {
+    final db = await database; // Get the database instance
+    db.insert(
+      _taskTable,
+      {
+        _taskColumnContent: content,
+        _taskColumnStatus: 0,
+      },
+    );
   }
 }
