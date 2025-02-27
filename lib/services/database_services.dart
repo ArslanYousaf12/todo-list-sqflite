@@ -16,6 +16,7 @@ class DatabaseServices {
   final String _taskColumnId = 'id';
   final String _taskColumnContent = 'content';
   final String _taskColumnStatus = 'status';
+  final String _taskColumnCategory = 'category_id';
 
   // Getter for the database instance
   Future<Database> get database async {
@@ -31,7 +32,7 @@ class DatabaseServices {
     final databaseDir =
         await getDatabasesPath(); // Get the path to the database directory
     final databasePath = join(databaseDir,
-        'todo_list.db'); // Create the full path for the database file
+        'todo_list1.db'); // Create the full path for the database file
     final database = await openDatabase(
       databasePath,
       version: 1,
@@ -39,9 +40,10 @@ class DatabaseServices {
         // SQL query to create the task table
         db.execute('''
         CREATE TABLE $_taskTable (
-          $_taskColumnId INTEGER PRIMARY KEY,
+          $_taskColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
           $_taskColumnContent TEXT NOT NULL,
-          $_taskColumnStatus INTEGER NOT NULL)
+          $_taskColumnStatus INTEGER NOT NULL,
+          $_taskColumnCategory INTEGER NOT NULL)
          ''');
       },
     );
@@ -49,13 +51,14 @@ class DatabaseServices {
   }
 
   // Method to add a new task to the database
-  void add(String content) async {
+  void add(String content, int categoryId) async {
     final db = await database; // Get the database instance
     db.insert(
       _taskTable,
       {
         _taskColumnContent: content,
         _taskColumnStatus: 0, // Default status is 0 (incomplete)
+        _taskColumnCategory: categoryId,
       },
     );
   }
@@ -72,6 +75,7 @@ class DatabaseServices {
             id: e["id"] as int,
             status: e["status"] as int,
             content: e["content"] as String,
+            categoryId: e["category_id"] as int,
           ),
         )
         .toList(); // Convert the data to a list of TaskModel objects

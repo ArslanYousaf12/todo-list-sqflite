@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:todo_list_sqflite/pages/task_category.dart';
 import 'package:todo_list_sqflite/services/database_services.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -12,6 +13,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final DatabaseServices _databaseServices = DatabaseServices.instance;
   String? _task;
   final TextEditingController _textController = TextEditingController();
+  int _selectedCategory = 1; // Default category
 
   @override
   void dispose() {
@@ -28,17 +30,47 @@ class _MyHomePageState extends State<MyHomePage> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Text('Add New Task',
               style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _textController,
-            onChanged: (value) => _task = value,
-            decoration: InputDecoration(
-              hintText: 'Enter task',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _textController,
+                onChanged: (value) => _task = value,
+                decoration: InputDecoration(
+                  hintText: 'Enter task',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                ),
               ),
-              filled: true,
-              fillColor: Colors.grey[100],
-            ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items: categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category.id,
+                    child: Row(
+                      children: [
+                        Text(category.icon),
+                        const SizedBox(width: 8),
+                        Text(category.name),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value!;
+                  });
+                },
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -49,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 if (_task?.isNotEmpty ?? false) {
                   setState(() {
-                    _databaseServices.add(_task!);
+                    _databaseServices.add(_task!, _selectedCategory);
                     _textController.clear();
                   });
                   Navigator.pop(context);
@@ -147,7 +179,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             label: 'Undo',
                             onPressed: () {
                               setState(() {
-                                _databaseServices.add(task.content);
+                                _databaseServices.add(
+                                    task.content, task.categoryId);
                               });
                             },
                           ),
@@ -155,16 +188,24 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                     child: ListTile(
-                      leading: Checkbox(
-                        value: task.status == 1,
-                        onChanged: (value) {
-                          setState(() {
-                            _databaseServices.updateTaskStatus(
-                              task.id,
-                              value == true ? 1 : 0,
-                            );
-                          });
-                        },
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: task.status == 1,
+                            onChanged: (value) {
+                              setState(() {
+                                _databaseServices.updateTaskStatus(
+                                  task.id,
+                                  value == true ? 1 : 0,
+                                );
+                              });
+                            },
+                          ),
+                          Text(categories
+                              .firstWhere((cat) => cat.id == task.categoryId)
+                              .icon),
+                        ],
                       ),
                       title: Text(
                         task.content,
