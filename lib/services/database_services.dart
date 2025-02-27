@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart'; // Importing path package to handle file paths
-import 'package:sqflite/sqflite.dart'; // Importing sqflite package for SQLite database operations
+import 'package:sqflite/sqflite.dart';
+import 'package:todo_list_sqflite/models/task_model.dart'; // Importing sqflite package for SQLite database operations
 
 class DatabaseServices {
   // Singleton pattern to ensure only one instance of DatabaseServices exists
@@ -54,6 +56,41 @@ class DatabaseServices {
         _taskColumnContent: content,
         _taskColumnStatus: 0,
       },
+    );
+  }
+
+  Future<List<TaskModel>> getTasks() async {
+    final db = await database;
+    final data = await db.query(_taskTable);
+    debugPrint(data.toString());
+    return data
+        .map(
+          (e) => TaskModel(
+            id: e["id"] as int,
+            status: e["status"] as int,
+            content: e["content"] as String,
+          ),
+        )
+        .toList();
+  }
+
+  void updateTaskStatus(id, value) async {
+    final db = await database;
+    db.update(
+        _taskTable,
+        {
+          _taskColumnStatus: value,
+        },
+        where: '$_taskColumnId = ?',
+        whereArgs: [id]);
+  }
+
+  void deleteTask(int id) async {
+    final db = await database;
+    db.delete(
+      _taskTable,
+      where: '$_taskColumnId = ?',
+      whereArgs: [id],
     );
   }
 }

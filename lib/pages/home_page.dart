@@ -32,7 +32,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (_task == null || _task == '') {
                       return;
                     }
-                    _databaseServices.add(_task!);
+                    setState(() {
+                      _databaseServices.add(_task!);
+                    });
+
                     Navigator.of(context).pop();
                   })
             ],
@@ -43,8 +46,33 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton:
-          FloatingActionButton(onPressed: _addTask, child: Icon(Icons.add)),
+      body: FutureBuilder(
+          future: _databaseServices.getTasks(),
+          builder: (context, snapshot) {
+            return ListView.builder(
+                itemCount: snapshot.data?.length ?? 0,
+                itemBuilder: (context, index) {
+                  final task = snapshot.data![index];
+                  return ListTile(
+                    onLongPress: () {
+                      setState(() {
+                        _databaseServices.deleteTask(task.id);
+                      });
+                    },
+                    title: Text(task.content),
+                    trailing: Checkbox(
+                        value: task.status == 1,
+                        onChanged: (value) {
+                          setState(() {
+                            _databaseServices.updateTaskStatus(
+                                task.id, value == true ? 1 : 0);
+                          });
+                        }),
+                  );
+                });
+          }),
+      floatingActionButton: FloatingActionButton(
+          onPressed: _addTask, child: const Icon(Icons.add)),
     );
   }
 }
