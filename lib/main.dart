@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:todo_list_sqflite/pages/home_page.dart';
+import 'package:todo_list_sqflite/services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.initialize();
   runApp(const MyApp());
 }
 

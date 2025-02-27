@@ -9,6 +9,7 @@ android {
     namespace = "com.example.todo_list_sqflite"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    compileSdkVersion 33    // Change back to 33
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -28,6 +29,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        minSdkVersion 21    // Set minimum SDK version
+        targetSdkVersion 33 // Change back to 33
     }
 
     buildTypes {

@@ -39,7 +39,7 @@ class DatabaseServices {
     final databaseDir =
         await getDatabasesPath(); // Get the path to the database directory
     final databasePath = join(databaseDir,
-        'todo_list2.db'); // Create the full path for the database file
+        'todo_list3.db'); // Create the full path for the database file
     final database = await openDatabase(
       databasePath,
       version: 1,

@@ -3,6 +3,7 @@ import 'package:todo_list_sqflite/models/task_category.dart';
 import 'package:todo_list_sqflite/models/task_timer.dart';
 import 'package:todo_list_sqflite/services/database_services.dart';
 import 'package:intl/intl.dart';
+import 'package:todo_list_sqflite/services/notification_service.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -145,6 +146,20 @@ class _MyHomePageState extends State<MyHomePage> {
                           taskId,
                           _selectedDateTime!,
                         );
+
+                        // Schedule notification
+                        await NotificationService.instance.scheduleTaskReminder(
+                          taskId,
+                          _task!,
+                          _selectedDateTime!,
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Reminder set successfully!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       }
 
                       setState(() {
@@ -239,6 +254,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     onDismissed: (direction) {
                       setState(() {
                         _databaseServices.deleteTask(task.id);
+                        NotificationService.instance
+                            .cancelTaskReminder(task.id);
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
