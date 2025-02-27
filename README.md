@@ -1,4 +1,26 @@
-# todo_list_sqflite
+cd todo_list_sqflite# Todo List with SQLite
+
+A Flutter application that demonstrates how to build a todo list using SQLite for local data persistence.
+
+## Features
+
+- Create, Read, Update and Delete (CRUD) todo items
+- Persist todo items locally using SQLite database
+- Clean and intuitive user interface
+
+## Getting Started
+
+### Prerequisites
+
+- Flutter SDK
+- Android Studio / Xcode for mobile development
+- Basic understanding of Flutter and Dart
+
+### Installation
+
+1. Clone the repository
+```sh
+git clone https://github.com/arslanuousaf12/todo_list_sqflite.git# todo_list_sqflite
 
 A new Flutter project.
 
