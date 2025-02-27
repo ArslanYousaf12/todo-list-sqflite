@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart'; // Importing path package to handle file paths
 import 'package:sqflite/sqflite.dart'; // Importing sqflite package for SQLite database operations
 import 'package:todo_list_sqflite/models/task_model.dart'; // Importing task model
+import 'package:todo_list_sqflite/models/task_timer.dart';
 
 class DatabaseServices {
   // Singleton pattern to ensure only one instance of DatabaseServices exists
@@ -18,6 +19,12 @@ class DatabaseServices {
   final String _taskColumnStatus = 'status';
   final String _taskColumnCategory = 'category_id';
 
+  // Add timer table and columns
+  final String _timerTable = 'task_timer';
+  final String _timerColumnTaskId = 'task_id';
+  final String _timerColumnScheduledTime = 'scheduled_time';
+  final String _timerColumnIsNotified = 'is_notified';
+
   // Getter for the database instance
   Future<Database> get database async {
     if (_database != null) {
@@ -32,28 +39,35 @@ class DatabaseServices {
     final databaseDir =
         await getDatabasesPath(); // Get the path to the database directory
     final databasePath = join(databaseDir,
-        'todo_list1.db'); // Create the full path for the database file
+        'todo_list2.db'); // Create the full path for the database file
     final database = await openDatabase(
       databasePath,
       version: 1,
-      onCreate: (db, version) {
-        // SQL query to create the task table
-        db.execute('''
+      onCreate: (db, version) async {
+        await db.execute('''
         CREATE TABLE $_taskTable (
           $_taskColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
           $_taskColumnContent TEXT NOT NULL,
           $_taskColumnStatus INTEGER NOT NULL,
           $_taskColumnCategory INTEGER NOT NULL)
-         ''');
+        ''');
+
+        await db.execute('''
+        CREATE TABLE $_timerTable (
+          $_timerColumnTaskId INTEGER PRIMARY KEY,
+          $_timerColumnScheduledTime TEXT NOT NULL,
+          $_timerColumnIsNotified INTEGER NOT NULL,
+          FOREIGN KEY ($_timerColumnTaskId) REFERENCES $_taskTable ($_taskColumnId) ON DELETE CASCADE)
+        ''');
       },
     );
     return database; // Return the database instance
   }
 
   // Method to add a new task to the database
-  void add(String content, int categoryId) async {
+  Future<int> add(String content, int categoryId) async {
     final db = await database; // Get the database instance
-    db.insert(
+    return db.insert(
       _taskTable,
       {
         _taskColumnContent: content,
@@ -101,6 +115,37 @@ class DatabaseServices {
       _taskTable,
       where: '$_taskColumnId = ?', // Specify the row to delete
       whereArgs: [id], // Provide the id of the task to delete
+    );
+  }
+
+  // Add methods for timer operations
+  Future<void> setTaskTimer(int taskId, DateTime scheduledTime) async {
+    final db = await database;
+    await db.insert(
+      _timerTable,
+      TaskTimer(taskId: taskId, scheduledTime: scheduledTime).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<TaskTimer?> getTaskTimer(int taskId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _timerTable,
+      where: '$_timerColumnTaskId = ?',
+      whereArgs: [taskId],
+    );
+
+    if (maps.isEmpty) return null;
+    return TaskTimer.fromMap(maps.first);
+  }
+
+  Future<void> deleteTaskTimer(int taskId) async {
+    final db = await database;
+    await db.delete(
+      _timerTable,
+      where: '$_timerColumnTaskId = ?',
+      whereArgs: [taskId],
     );
   }
 }

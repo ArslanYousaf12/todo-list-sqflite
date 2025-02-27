@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:todo_list_sqflite/pages/task_category.dart';
+import 'package:todo_list_sqflite/models/task_category.dart';
+import 'package:todo_list_sqflite/models/task_timer.dart';
 import 'package:todo_list_sqflite/services/database_services.dart';
+import 'package:intl/intl.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -14,6 +16,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _task;
   final TextEditingController _textController = TextEditingController();
   int _selectedCategory = 1; // Default category
+  DateTime? _selectedDateTime;
 
   @override
   void dispose() {
@@ -21,82 +24,147 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  void _showDateTimePicker() async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _selectedDateTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
+  }
+
   void _addTask() {
+    _selectedDateTime = null; // Reset selected datetime
     showDialog(
       context: context,
       builder: (_) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text('Add New Task',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _textController,
-                onChanged: (value) => _task = value,
-                decoration: InputDecoration(
-                  hintText: 'Enter task',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                ),
-                items: categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category.id,
-                    child: Row(
-                      children: [
-                        Text(category.icon),
-                        const SizedBox(width: 8),
-                        Text(category.name),
-                      ],
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              title: const Text('Add New Task',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _textController,
+                    onChanged: (value) => _task = value,
+                    decoration: InputDecoration(
+                      hintText: 'Enter task',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category.id,
+                        child: Row(
+                          children: [
+                            Text(category.icon),
+                            const SizedBox(width: 8),
+                            Text(category.name),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategory = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: Text(_selectedDateTime == null
+                        ? 'Set reminder'
+                        : 'Reminder: ${DateFormat('MMM d, y HH:mm').format(_selectedDateTime!)}'),
+                    trailing: IconButton(
+                      icon: Icon(_selectedDateTime == null
+                          ? Icons.alarm_add
+                          : Icons.alarm_off),
+                      onPressed: () {
+                        if (_selectedDateTime == null) {
+                          _showDateTimePicker();
+                          setStateDialog(() {});
+                        } else {
+                          setStateDialog(() {
+                            _selectedDateTime = null;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_task?.isNotEmpty ?? false) {
-                  setState(() {
-                    _databaseServices.add(_task!, _selectedCategory);
-                    _textController.clear();
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-              ),
-              child: const Text('Add Task'),
-            ),
-          ],
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_task?.isNotEmpty ?? false) {
+                      final taskId = await _databaseServices.add(
+                        _task!,
+                        _selectedCategory,
+                      );
+
+                      if (_selectedDateTime != null) {
+                        await _databaseServices.setTaskTimer(
+                          taskId,
+                          _selectedDateTime!,
+                        );
+                      }
+
+                      setState(() {
+                        _textController.clear();
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Add Task'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -215,6 +283,19 @@ class _MyHomePageState extends State<MyHomePage> {
                               : null,
                           color: task.status == 1 ? Colors.grey : Colors.black,
                         ),
+                      ),
+                      trailing: FutureBuilder<TaskTimer?>(
+                        future: _databaseServices.getTaskTimer(task.id),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData && snapshot.data != null) {
+                            return Tooltip(
+                              message: DateFormat('MMM d, y HH:mm')
+                                  .format(snapshot.data!.scheduledTime),
+                              child: const Icon(Icons.alarm, size: 20),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
                     ),
                   ),
